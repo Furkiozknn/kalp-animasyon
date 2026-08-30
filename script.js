@@ -41,9 +41,13 @@ function onResize() {
   const w = window.innerWidth, h = window.innerHeight;
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
+  const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+  renderer.setPixelRatio(pixelRatio);
   renderer.setSize(w, h);
   composer.setSize(w, h);
   bloomPass.resolution.set(w, h);
+  dustMat.uniforms.uPixelRatio.value = pixelRatio;
+  starMat.uniforms.uPixelRatio.value = pixelRatio;
   BASE_DIST = computeBaseDist();
 }
 window.addEventListener('resize', onResize);
@@ -85,6 +89,9 @@ function hueAt(f) {
   }
   return HUE_STOPS[0].h;
 }
+// hueAt(f) only depends on the fixed parameter f, not on time - the per-frame
+// cost was recomputing the same 581 values (321 tube + 260 dust) every frame.
+// Cache them once; per-frame code only adds the scalar hueShift afterward.
 
 const heartGroup = new THREE.Group();
 scene.add(heartGroup);
@@ -116,11 +123,14 @@ const tubeColorAttr = new THREE.BufferAttribute(new Float32Array(tubeGeo.attribu
 tubeGeo.setAttribute('color', tubeColorAttr);
 const tmpColor = new THREE.Color();
 
+const tubeBaseHue = new Float32Array(TUBULAR_SEGMENTS + 1);
+for (let i = 0; i <= TUBULAR_SEGMENTS; i++) tubeBaseHue[i] = hueAt(i / TUBULAR_SEGMENTS);
+
 function updateTubeColors(hueShift, time) {
   const arr = tubeColorAttr.array;
   for (let i = 0; i <= TUBULAR_SEGMENTS; i++) {
     const f = i / TUBULAR_SEGMENTS;
-    const h = (hueAt(f) + hueShift + 360) % 360;
+    const h = (tubeBaseHue[i] + hueShift + 360) % 360;
     const l = (46 + Math.sin(time * 1.6 + f * 18) * 8) / 100;
     tmpColor.setHSL(h / 360, 0.92, l);
     const base = i * ringVerts * 3;
@@ -156,6 +166,7 @@ for (let i = 0; i < DUST_COUNT; i++) {
   const f = (t / (Math.PI * 2)) % 1;
   dustData.push({
     f,
+    baseHue: hueAt(f),
     base: new THREE.Vector3((p.x / 16) * WORLD_SCALE, (p.y / 16) * WORLD_SCALE, (z / 16) * WORLD_SCALE),
     jitter: new THREE.Vector3((Math.random() - 0.5) * 0.9, (Math.random() - 0.5) * 0.9, (Math.random() - 0.5) * 0.9),
     from: new THREE.Vector3((Math.random() - 0.5) * 16, (Math.random() - 0.5) * 10, (Math.random() - 0.5) * 10),
@@ -300,10 +311,10 @@ function updateShooters(dt) {
     s.head.addScaledVector(s.vel, dt);
     s.life -= dt * 0.6;
     if (s.life <= 0) { s.line.visible = false; continue; }
-    const tail = s.head.clone().addScaledVector(s.vel, -0.35);
+    shooterTailScratch.copy(s.head).addScaledVector(s.vel, -0.35);
     const posAttr = s.line.geometry.attributes.position;
     posAttr.setXYZ(0, s.head.x, s.head.y, s.head.z);
-    posAttr.setXYZ(1, tail.x, tail.y, tail.z);
+    posAttr.setXYZ(1, shooterTailScratch.x, shooterTailScratch.y, shooterTailScratch.z);
     posAttr.needsUpdate = true;
     const alphaAttr = s.line.geometry.attributes.alpha;
     alphaAttr.setX(0, Math.min(1, s.life * 2));
@@ -318,17 +329,29 @@ function easeOutCubic(x) { return 1 - Math.pow(1 - x, 3); }
 
 const clock = new THREE.Clock();
 const camPos = new THREE.Vector3(0, 0, BASE_DIST);
+const shooterTailScratch = new THREE.Vector3();
+
+// Accumulated from the clamped dt (not clock.getElapsedTime(), which keeps
+// counting real wall-clock time even while the tab is backgrounded and RAF is
+// paused - a long background spell would otherwise make the entrance reveal
+// and rotation jump instead of animating smoothly).
+let simTime = 0;
+let entranceDone = false;
 
 function animate() {
   const dt = Math.min(clock.getDelta(), 0.05);
-  const t = clock.getElapsedTime();
+  simTime += dt;
+  const t = simTime;
 
   const formProgress = easeOutCubic(Math.min(t / FORM_DURATION, 1));
   const hueShift = Math.sin(t * 0.12) * 20;
 
-  // reveal the ribbon segment by segment
-  const segCount = Math.max(1, Math.round(TUBULAR_SEGMENTS * formProgress));
-  tubeGeo.setDrawRange(0, segCount * TUBE_INDICES_PER_SEGMENT);
+  // reveal the ribbon segment by segment, then stop touching drawRange once fully formed
+  if (!entranceDone) {
+    const segCount = Math.round(TUBULAR_SEGMENTS * formProgress);
+    tubeGeo.setDrawRange(0, segCount * TUBE_INDICES_PER_SEGMENT);
+    if (formProgress >= 1) entranceDone = true;
+  }
   updateTubeColors(hueShift, t);
 
   // breathing pulse + slow living rotation
@@ -346,11 +369,15 @@ function animate() {
     const tx = d.base.x + d.jitter.x * flicker;
     const ty = d.base.y + d.jitter.y * flicker;
     const tz = d.base.z + d.jitter.z * flicker;
-    const x = d.from.x + (tx - d.from.x) * formProgress;
-    const y = d.from.y + (ty - d.from.y) * formProgress;
-    const z = d.from.z + (tz - d.from.z) * formProgress;
-    posAttr.setXYZ(i, x, y, z);
-    const h = (hueAt(d.f) + hueShift + 360) % 360;
+    if (entranceDone) {
+      posAttr.setXYZ(i, tx, ty, tz);
+    } else {
+      const x = d.from.x + (tx - d.from.x) * formProgress;
+      const y = d.from.y + (ty - d.from.y) * formProgress;
+      const z = d.from.z + (tz - d.from.z) * formProgress;
+      posAttr.setXYZ(i, x, y, z);
+    }
+    const h = (d.baseHue + hueShift + 360) % 360;
     tmpColor.setHSL(h / 360, 0.95, 0.62);
     colAttr.setXYZ(i, tmpColor.r, tmpColor.g, tmpColor.b);
   }
