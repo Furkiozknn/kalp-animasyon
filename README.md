@@ -19,9 +19,7 @@
 
 <br>
 
-A single HTML file, a scattering of vanilla JavaScript, and [Three.js](https://threejs.org/) — that's the entire ingredient list. No framework, no bundler, no build step. Load the page and a heart forms itself out of stardust: a single unbroken ribbon of light traced along a real parametric curve, wrapped in bloom, drifting through a living starfield that occasionally streaks with a shooting star. Move your mouse, or tilt your phone, and the whole galaxy leans with you.
-
-This README walks through what it looks like, how it's built, and how to run it yourself.
+A single HTML file, a scattering of vanilla JavaScript, and [Three.js](https://threejs.org/) — that's the entire ingredient list. No framework, no bundler, no build step. Load the page and a heart forms itself out of stardust: a single unbroken ribbon of light traced along a real parametric curve, wrapped in genuine GPU bloom, drifting through a living starfield that occasionally streaks with a shooting star. Move your mouse, or tilt your phone, and the whole galaxy leans with you.
 
 <br>
 
