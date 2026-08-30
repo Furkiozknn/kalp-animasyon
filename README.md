@@ -26,3 +26,7 @@ Then open the printed local URL. (Opening `index.html` directly via `file://` wo
 ## 📦 Stack
 
 Plain HTML/CSS/JS, Three.js loaded via import map from a CDN — no build step.
+
+## 📄 License
+
+MIT
