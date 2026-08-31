@@ -4,6 +4,23 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
+// ---------- Optional personalization: ?to=Name or ?msg=A short line ----------
+// "made for one, shared with everyone" - the same piece can carry a different
+// name or line per recipient without touching the file. No params -> today's
+// exact default text. Values are read with URLSearchParams and written with
+// textContent only, never innerHTML, so a hand-crafted URL can't inject markup.
+(function personalizeOverlay() {
+  const params = new URLSearchParams(window.location.search);
+  const to = params.get('to');
+  const msg = params.get('msg');
+  if (!to && !msg) return;
+  const clean = (s, max) => s.replace(/\s+/g, ' ').trim().slice(0, max);
+  const titleEl = document.getElementById('title');
+  const subtitleEl = document.getElementById('subtitle');
+  if (to && titleEl) titleEl.textContent = `For ${clean(to, 40)}`;
+  if (msg && subtitleEl) subtitleEl.textContent = clean(msg, 120);
+})();
+
 // ---------- Renderer / Scene / Camera ----------
 const canvas = document.getElementById('scene');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
@@ -69,6 +86,13 @@ let zoom = 0; // -1 (far) .. 1 (near)
 window.addEventListener('wheel', (e) => {
   zoom = THREE.MathUtils.clamp(zoom + Math.sign(e.deltaY) * 0.08, -1, 1);
 }, { passive: true });
+
+// ---------- Reduced motion ----------
+// The heart still forms and glows for everyone - this only tones down motion
+// that exists for its own sake: mouse/tilt parallax, the idle rotation and
+// breathing pulse, the starfield's slow drift, and how often streaks appear.
+// Deliberate, user-driven input (scroll-to-zoom) is left alone.
+const reducedMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
 // ---------- Aurora hue ramp: magenta -> violet -> gold, no green crossing ----------
 const HUE_STOPS = [
@@ -296,7 +320,7 @@ for (let i = 0; i < MAX_SHOOTERS; i++) {
   shooterGroup.add(line);
   shooterPool.push({ line, life: 0, vel: new THREE.Vector3(), head: new THREE.Vector3() });
 }
-let nextShootAt = 2 + Math.random() * 4;
+let nextShootAt = reducedMotion ? 8 + Math.random() * 10 : 2 + Math.random() * 4;
 function spawnShooter() {
   const s = shooterPool.find((p) => p.life <= 0);
   if (!s) return;
@@ -354,18 +378,18 @@ function animate() {
   }
   updateTubeColors(hueShift, t);
 
-  // breathing pulse + slow living rotation
-  const pulse = 1 + Math.sin(t * 0.9) * 0.02;
+  // breathing pulse + slow living rotation (stilled when reduced motion is requested)
+  const pulse = reducedMotion ? 1 : 1 + Math.sin(t * 0.9) * 0.02;
   heartGroup.scale.setScalar(pulse);
-  heartGroup.rotation.y = t * 0.12;
-  heartGroup.rotation.x = Math.sin(t * 0.15) * 0.08;
+  heartGroup.rotation.y = reducedMotion ? 0 : t * 0.12;
+  heartGroup.rotation.x = reducedMotion ? 0 : Math.sin(t * 0.15) * 0.08;
 
   // stardust: entrance + orbit-following jitter
   const posAttr = dustGeo.attributes.position;
   const colAttr = dustGeo.attributes.color;
   for (let i = 0; i < DUST_COUNT; i++) {
     const d = dustData[i];
-    const flicker = 0.5 + 0.5 * Math.sin(t * d.speed * 40 + d.phase);
+    const flicker = reducedMotion ? 0 : 0.5 + 0.5 * Math.sin(t * d.speed * 40 + d.phase);
     const tx = d.base.x + d.jitter.x * flicker;
     const ty = d.base.y + d.jitter.y * flicker;
     const tz = d.base.z + d.jitter.z * flicker;
@@ -384,20 +408,22 @@ function animate() {
   posAttr.needsUpdate = true;
   colAttr.needsUpdate = true;
 
-  // starfield twinkle + slow drift
+  // starfield twinkle + slow drift (drift stilled when reduced motion is requested)
   starMat.uniforms.uTime.value = t;
-  stars.rotation.y = t * 0.006;
+  stars.rotation.y = reducedMotion ? 0 : t * 0.006;
 
-  // shooting stars
+  // shooting stars (rarer when reduced motion is requested)
   if (t > nextShootAt) {
     spawnShooter();
-    nextShootAt = t + 3 + Math.random() * 5;
+    nextShootAt = reducedMotion ? t + 10 + Math.random() * 12 : t + 3 + Math.random() * 5;
   }
   updateShooters(dt);
 
   // camera parallax + scroll zoom, eased toward target
-  const targetX = pointerTarget.x * 1.1;
-  const targetY = -pointerTarget.y * 0.7;
+  // reduced motion drops the mouse/tilt tilt-follow entirely; scroll-to-zoom
+  // stays, since it's a deliberate action the visitor takes, not ambient drift.
+  const targetX = reducedMotion ? 0 : pointerTarget.x * 1.1;
+  const targetY = reducedMotion ? 0 : -pointerTarget.y * 0.7;
   const targetDist = BASE_DIST - zoom * 2.4;
   const ease = Math.min(1, dt * 2.2);
   camPos.x += (targetX - camPos.x) * ease;

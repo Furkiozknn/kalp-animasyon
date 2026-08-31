@@ -1,0 +1,11 @@
+{
+  "name": "kalp-animasyon-tests",
+  "private": true,
+  "description": "Dev-only Playwright smoke test for My Universe. The site itself has no build step and never will - this file exists purely so CI can lint-check the live page in a browser.",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.48.0"
+  }
+}

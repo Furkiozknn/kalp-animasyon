@@ -36,7 +36,10 @@ A single HTML file, a scattering of vanilla JavaScript, and [Three.js](https://t
   - [Shooting stars](#shooting-stars)
   - [The entrance, and the living loop](#the-entrance-and-the-living-loop)
   - [Parallax and zoom](#parallax-and-zoom)
+- [Sharing It — Personalized Overlay Text](#-sharing-it--personalized-overlay-text)
+- [Motion & Accessibility](#-motion--accessibility)
 - [Run It Locally](#-run-it-locally)
+- [Testing](#-testing)
 - [Project Structure](#-project-structure)
 - [Stack & Credits](#-stack--credits)
 - [License](#-license)
@@ -134,6 +137,25 @@ Mouse position, touch position, and scroll delta all feed into eased targets tha
 
 <br>
 
+## 💌 Sharing It — Personalized Overlay Text
+
+*"made for one, shared with everyone"* — the same piece now carries a different name or line per recipient without ever touching the file. Two optional URL query params:
+
+| Param | Effect | Example |
+|---|---|---|
+| `?to=Name` | Replaces the title with "For Name" | `?to=Ada` → **For Ada** |
+| `?msg=A short line` | Replaces the subtitle | `?msg=happy%20anniversary` |
+
+Both can be combined (`?to=Ada&msg=...`), both are optional, and with neither present the page renders exactly today's default text — nothing changes for the live link already out in the world. Values are read with `URLSearchParams` and written with `textContent` only (never `innerHTML`), so a hand-crafted URL can't inject markup; each value is also whitespace-collapsed and length-capped.
+
+<br>
+
+## ♿ Motion & Accessibility
+
+The page already respects `prefers-reduced-motion: reduce` at the CSS level (the title/subtitle entrance animations), and now the Three.js scene itself does too. When it's set, the heart still forms, glows, and stays lit — only motion that exists purely for ambience is toned down or removed: the mouse/tilt camera parallax, the idle breathing pulse and self-rotation, the stardust flicker, the starfield's slow drift, and how often shooting stars appear (rarer, not gone). Deliberate visitor input — scroll/pinch to zoom — is left untouched, since that's an action you took, not ambient motion the page imposed on you.
+
+<br>
+
 ## 🧑‍💻 Run It Locally
 
 The page loads Three.js via an ES module import map, which browsers refuse to resolve over `file://` — so it needs a real (if trivial) local server:
@@ -142,7 +164,21 @@ The page loads Three.js via an ES module import map, which browsers refuse to re
 npx serve .
 ```
 
-Then open the printed local URL. That's the entire setup — no `npm install`, no build, no config.
+Then open the printed local URL. That's the entire setup — no `npm install`, no build, no config. (`npm install` is only needed for the dev-only test suite below — the page itself never needed it and still doesn't.)
+
+<br>
+
+## 🧪 Testing
+
+A small Playwright smoke test (`test/smoke.spec.js`) — dev-only, does not affect how the page is built or served:
+
+```bash
+npm install
+npx playwright install --with-deps chromium   # first run only
+npm test
+```
+
+It loads the live page and checks: no console errors with default motion, no console errors with `prefers-reduced-motion: reduce` emulated, and that `?to=`/`?msg=` personalize the title/subtitle correctly. CI (`.github/workflows/ci.yml`) runs the same suite on every push/PR.
 
 <br>
 
@@ -150,15 +186,23 @@ Then open the printed local URL. That's the entire setup — no `npm install`, n
 
 ```
 kalp-animasyon/
-├── index.html              entry point — fonts, import map, overlay text
+├── index.html              entry point — fonts, import map, OG/Twitter meta, overlay text
 ├── styles.css               overlay typography, shimmer & fade animations
-├── script.js                the entire scene: heart, bloom, stars, input
+├── script.js                the entire scene: heart, bloom, stars, input, reduced-motion, personalization
 ├── LICENSE                  MIT
+├── package.json              dev-only: Playwright test runner
+├── playwright.config.js      dev-only: Playwright config (serves the page over http, no build)
+├── test/
+│   └── smoke.spec.js         console-error + personalization smoke test
+├── .github/workflows/ci.yml  runs the smoke test on push/PR
 └── assets/
-    ├── banner.svg            hero banner
-    ├── heart-curve-math.svg  the parametric curve, explained visually
-    ├── color-journey.svg     the magenta → violet → gold hue drift
-    └── feature-icons.svg     bloom / parallax / starfield / shooting stars
+    ├── banner.svg             hero banner
+    ├── heart-curve-math.svg   the parametric curve, explained visually
+    ├── color-journey.svg      the magenta → violet → gold hue drift
+    ├── feature-icons.svg      bloom / parallax / starfield / shooting stars
+    ├── favicon-32.png         browser-tab icon
+    ├── favicon-180.png        apple-touch-icon
+    └── og-preview.png         social-share preview image (Open Graph / Twitter Card)
 ```
 
 <br>
