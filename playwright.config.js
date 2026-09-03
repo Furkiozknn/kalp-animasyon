@@ -15,5 +15,11 @@ module.exports = defineConfig({
   },
   use: {
     baseURL: 'http://localhost:4173',
+    // Escape hatch for sandboxed/offline environments that already ship a
+    // Chromium but can't download Playwright's pinned build. Unset in CI, so
+    // CI keeps using the browser `npx playwright install` provides.
+    ...(process.env.PW_CHROMIUM_PATH
+      ? { launchOptions: { executablePath: process.env.PW_CHROMIUM_PATH } }
+      : {}),
   },
 });
