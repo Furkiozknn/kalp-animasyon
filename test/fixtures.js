@@ -13,6 +13,7 @@
 // built or shipped changes - only what the test browser talks to.
 const fs = require('fs');
 const path = require('path');
+const { meanDifference } = require('./png');
 
 // `three` does not export ./package.json, so locate the package from its
 // main entry (<root>/build/three.cjs) rather than hardcoding node_modules -
@@ -67,4 +68,26 @@ function collectConsoleErrors(page) {
   return errors;
 }
 
-module.exports = { serveLocalCdn, collectConsoleErrors };
+// Wait until the page stops changing, rather than guessing at a delay.
+//
+// A fixed timeout is not safe here: simTime advances from a delta clamped to
+// 50ms per frame, so on a slow software renderer the clock runs behind
+// wall-clock time and the ~2.9s entrance can still be drawing itself several
+// seconds in. Polling for two near-identical frames waits exactly as long as
+// the machine needs and no longer.
+async function waitForStillFrame(page, { tolerance = 1, timeoutMs = 40000, gapMs = 400 } = {}) {
+  const deadline = Date.now() + timeoutMs;
+  let previous = await page.screenshot({ type: 'png' });
+  let difference = Infinity;
+  while (Date.now() < deadline) {
+    await page.waitForTimeout(gapMs);
+    const next = await page.screenshot({ type: 'png' });
+    difference = meanDifference(previous, next);
+    previous = next;
+    if (difference < tolerance) return { frame: next, difference };
+  }
+  throw new Error(
+    `scene never settled: last frame difference ${difference.toFixed(3)} (tolerance ${tolerance})`);
+}
+
+module.exports = { serveLocalCdn, collectConsoleErrors, waitForStillFrame };

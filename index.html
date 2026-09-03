@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="My Universe — bir yıldız uzayında dönen, ışık saçan 3B kalp.">
+<meta name="description" content="My Universe — a glowing 3D heart, beating in its own galaxy.">
 <meta name="theme-color" content="#05020c">
 <title>My Universe</title>
 <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
@@ -11,13 +11,13 @@
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://furkiozknn.github.io/kalp-animasyon/">
 <meta property="og:title" content="My Universe">
-<meta property="og:description" content="My Universe — bir yıldız uzayında dönen, ışık saçan 3B kalp.">
+<meta property="og:description" content="My Universe — a glowing 3D heart, beating in its own galaxy.">
 <meta property="og:image" content="https://furkiozknn.github.io/kalp-animasyon/assets/og-preview.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="My Universe">
-<meta name="twitter:description" content="My Universe — bir yıldız uzayında dönen, ışık saçan 3B kalp.">
+<meta name="twitter:description" content="My Universe — a glowing 3D heart, beating in its own galaxy.">
 <meta name="twitter:image" content="https://furkiozknn.github.io/kalp-animasyon/assets/og-preview.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -33,14 +33,34 @@
 </script>
 </head>
 <body>
-<canvas id="scene"></canvas>
+<canvas id="scene" role="img" aria-label="A glowing three-dimensional heart, drawn as a single ribbon of light, beating slowly in a field of stars."></canvas>
+
+<!-- Shown only when WebGL is missing or the module fails to load. Everything
+     it needs is CSS, so it works with no scripting at all. -->
+<div id="fallback" aria-hidden="true"><span class="fallback-heart"></span></div>
 
 <div id="overlay">
   <h1 id="title">My Universe</h1>
   <p id="subtitle">In every lifetime, I'd find you again</p>
 </div>
 
-<div id="hint" aria-hidden="true">dokun ya da fareyle gez &middot; kaydırarak yakınlaş</div>
+<p id="hint"><span lang="tr">dokun ya da fareyle gez &middot; kaydırarak yakınlaş</span></p>
+
+<button id="share" type="button" hidden>share</button>
+<p id="share-status" class="visually-hidden" role="status" aria-live="polite"></p>
+
+<p class="visually-hidden">
+  Move the pointer, or tilt your phone, to lean the view. Scroll or pinch to
+  zoom. Drag to spin the heart. Tap it to scatter sparks. Nothing here is
+  required — the piece plays on its own.
+</p>
+
+<noscript>
+  <p class="noscript-note">
+    This piece is drawn live in 3D and needs JavaScript to run.
+    With it switched off, only the words remain.
+  </p>
+</noscript>
 
 <script type="module" src="script.js"></script>
 </body>
