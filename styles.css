@@ -19,6 +19,20 @@ canvas {
   inset: 0;
 }
 
+/* Screen-reader-only: the interaction notes and the share confirmation are
+   read aloud but never drawn, so they can't disturb the composition. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
 #overlay {
   position: fixed;
   inset: 0;
@@ -97,7 +111,109 @@ canvas {
   100% { opacity: 0; }
 }
 
+/* Share: a quiet pill that only asserts itself on hover or keyboard focus, so
+   it never competes with the heart. Sits above the iOS home indicator. */
+#share {
+  position: fixed;
+  right: max(18px, env(safe-area-inset-right));
+  bottom: max(18px, env(safe-area-inset-bottom));
+  padding: 9px 18px;
+  font-family: "Cinzel", Georgia, serif;
+  font-size: 10.5px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: rgba(255, 226, 236, 0.55);
+  background: rgba(28, 10, 34, 0.42);
+  border: 1px solid rgba(255, 200, 225, 0.22);
+  border-radius: 999px;
+  cursor: pointer;
+  /* Comfortably past the 24px minimum target size, and large enough to hit
+     with a thumb without magnifying the pill visually. */
+  min-height: 40px;
+  min-width: 92px;
+  backdrop-filter: blur(6px);
+  transition: color 0.35s ease, border-color 0.35s ease, background 0.35s ease;
+  animation: overlayIn 1.2s ease-out 3.4s both;
+}
+
+#share:hover,
+#share:focus-visible {
+  color: rgba(255, 240, 246, 0.95);
+  border-color: rgba(255, 210, 235, 0.6);
+  background: rgba(48, 16, 58, 0.62);
+}
+
+#share:focus-visible {
+  outline: 2px solid rgba(255, 226, 236, 0.85);
+  outline-offset: 3px;
+}
+
+/* ---- No-WebGL fallback ----
+   script.js adds .webgl-ready once the scene is actually live, and .no-webgl
+   if the context could not be created. Until one of those lands, the fallback
+   is what shows - so a device that never runs the module still gets a heart
+   rather than a black rectangle. */
+#fallback {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+body.webgl-ready #fallback { display: none; }
+
+/* A heart built from one square and two circles, the classic CSS construction -
+   no image, no font, nothing to download. */
+.fallback-heart {
+  position: relative;
+  width: 132px;
+  height: 132px;
+  transform: rotate(-45deg) scale(0.86);
+  background: linear-gradient(140deg, #ff5fd1, #b06bff);
+  border-radius: 6px;
+  filter: drop-shadow(0 0 42px rgba(255, 95, 209, 0.55));
+  animation: fallbackBeat 1.9s ease-in-out infinite;
+}
+
+.fallback-heart::before,
+.fallback-heart::after {
+  content: "";
+  position: absolute;
+  width: 132px;
+  height: 132px;
+  border-radius: 50%;
+  background: inherit;
+}
+
+.fallback-heart::before { top: -66px; left: 0; }
+.fallback-heart::after { top: 0; right: -66px; }
+
+@keyframes fallbackBeat {
+  0%, 100% { transform: rotate(-45deg) scale(0.86); }
+  12% { transform: rotate(-45deg) scale(0.94); }
+  24% { transform: rotate(-45deg) scale(0.88); }
+  36% { transform: rotate(-45deg) scale(0.91); }
+  50% { transform: rotate(-45deg) scale(0.86); }
+}
+
+.noscript-note {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 62px;
+  text-align: center;
+  padding: 0 24px;
+  font-family: "Cinzel", Georgia, serif;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  color: rgba(255, 220, 220, 0.5);
+}
+
 @media (prefers-reduced-motion: reduce) {
   #title, #subtitle { animation: none; opacity: 1; transform: none; filter: none; }
   #hint { animation: none; opacity: 0.32; }
+  #share { animation: none; }
+  .fallback-heart { animation: none; }
 }

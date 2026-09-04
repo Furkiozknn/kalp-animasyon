@@ -3,15 +3,14 @@
 // and that the optional ?to=/?msg= personalization params work. Does not
 // change how the site itself is built or served.
 const { test, expect } = require('@playwright/test');
+const { serveLocalCdn, collectConsoleErrors } = require('./fixtures');
 
-function collectConsoleErrors(page) {
-  const errors = [];
-  page.on('console', (msg) => {
-    if (msg.type() === 'error') errors.push(msg.text());
-  });
-  page.on('pageerror', (err) => errors.push(String(err)));
-  return errors;
-}
+// Three.js and the fonts are served from the local `three` devDependency
+// instead of unpkg/Google Fonts, so a CDN outage can't redden CI and the
+// suite runs offline. See test/fixtures.js.
+test.beforeEach(async ({ page }) => {
+  await serveLocalCdn(page);
+});
 
 test('loads with no console errors (default motion)', async ({ page }) => {
   const errors = collectConsoleErrors(page);
