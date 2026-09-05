@@ -16,6 +16,10 @@
 
 **[✨ Open the live piece ✨](https://furkiozknn.github.io/kalp-animasyon/)**
 
+<br>
+
+[![The heart, mid-beat — a live render, not a mockup](assets/og-preview.png)](https://furkiozknn.github.io/kalp-animasyon/)
+
 </div>
 
 <br>
